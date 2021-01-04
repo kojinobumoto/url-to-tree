@@ -26,7 +26,7 @@ $ ./url-to-tree urls.csv
             +--- bbb		bbb-title2    
                   +--- yyy		bbb-yyy-title3
 ```
-here urls.csv to be
+here, urls.csv looks like...
 ```
 "https://www.a.b.com/aaa",aaa-title-aaa-1    
 "https://www.a.b.com/bbb",bbb-title2    
