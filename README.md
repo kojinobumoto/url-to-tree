@@ -10,7 +10,7 @@ the url must be surounded by double quotes (at least '",' must present at the en
 and the url and title must be separeted by comma (,).
 
 ## Usage
-Comile and run with list of url file.
+Compile and run with list of url file.
 ```
 gcc -Wall -g -o url-to-tree url-to-tree.c
 ./url-to-tree <utl-list-text-file>
@@ -37,7 +37,7 @@ here urls.csv to be
 If you put "-tsv" option, the tree is printed out separated by TAB(s),
 so that you can save and import the output to Excel or Google Sheet as a TSV file.
 ```
-$ ./url-to-tree -tsv urls.txt
+$ ./url-to-tree -tsv urls.csv
 (root)
 	https://www.a.b.com
 aaa-title-aaa-1    		aaa
