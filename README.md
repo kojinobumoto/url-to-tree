@@ -10,7 +10,7 @@ the url must be surrounded by double quotes (at least '",' must present at the e
 and the url and title must be separeted by comma (,).
 
 ## Usage
-Compile and run with list of url file.
+Compile and run with a file of url list.
 ```
 gcc -Wall -g -o url-to-tree url-to-tree.c
 ./url-to-tree <utl-list-text-file>
