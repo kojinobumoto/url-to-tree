@@ -70,6 +70,17 @@ removeHeadingSubstr(char *p, const char *sub)
 }
 
 void
+removeTrailingChar(char *p, const char tc)
+{
+  size_t len=strlen(p);
+  if (p[len-1] == tc)
+    {
+      p[len-1] = '\0';
+    }
+  return;
+}
+
+void
 tokenize( char **result, char *src, const char *delim)
 {
      int i=0;
@@ -294,12 +305,30 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
       
       nd = root;
 
+      removeTrailingChar(line, '\n');
+      removeTrailingChar(line, '\r');
+      
       tokenize(token, line, delimiter);
+      
       // i'm interested in just url and title.
       url = token[0];
       if (token[1] != NULL)
         {
+          int tl;
           title = token[1];
+          
+          tl = strlen(title);
+          /*// '\r\n' should have been removed before tokenize.
+          if(title[tl-1] == '\n') {removeTrailingChar(title, '\n'); }
+          tl = strlen(title);
+          if(title[tl-1] == '\r') {removeTrailingChar(title, '\r'); }
+          tl = strlen(title);
+          */
+          if(tl > 1 && title[tl-1] == '"' && title[tl-2] != '\\')
+            {
+              removeTrailingChar(title, '"');
+            }
+
         }
       
       // ignore heading '"'
