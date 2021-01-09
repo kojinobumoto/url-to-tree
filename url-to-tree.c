@@ -350,6 +350,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
           // move after '/'
           if (url[pos] == '/')
             {
+              url[pos] = '\0';
               pos++;
               prev_pos = pos;
             }
@@ -390,18 +391,23 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
                 }
             }
 
-          dest = (char *)calloc(pos-prev_pos+1, sizeof(char));
-          if (dest == NULL)
-            {
-              printf("Memory Exhausted for \"dest\" allocation.\n");
-              exit(EXIT_FAILURE);
-            }
-          memmove(dest, &url[prev_pos], pos-prev_pos);
-          n_cldrn = count_children(nd);
-          child = find_same_child(nd, dest);
-
+          // now url[pos] is '/'
+          url[pos] = '\0';
+          
+          child = find_same_child(nd, url+prev_pos);
+          
           if (child == NULL)
             {
+              dest = (char *)calloc(pos-prev_pos+1, sizeof(char));
+              if (dest == NULL)
+                {
+                  printf("Memory Exhausted for \"dest\" allocation.\n");
+                  exit(EXIT_FAILURE);
+                }
+              
+              memmove(dest, &url[prev_pos], pos-prev_pos);
+              n_cldrn = count_children(nd);
+              
               // make sure there's always (n_cldrn+1) children and let the last one is always null
               nd->children = (struct Node **)realloc(nd->children, (n_cldrn+2)*sizeof(struct Node*));
               if (nd->children == NULL)
@@ -416,14 +422,10 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 
               nd->children[n_cldrn] = child;
               nd->children[n_cldrn+1] = NULL;
-            }
-          else
-            {
-              // same child exists, dest is useless at this moment.
-              free(dest);
-            }
+            }          
 
           nd = child;
+          pos++; // move to next char
 
         }
         // end of inner while
