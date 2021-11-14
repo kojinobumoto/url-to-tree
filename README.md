@@ -5,7 +5,7 @@ Convert url-list to tree structure.
 
 ### NOTES
 
-If you contain title of the Web page in url-list, 
+If the url-list contains title of the Web page, 
 the url must be surrounded by double quotes (at least '",' must present at the end of the url string),
 and the url and title must be separeted by comma (,).
 
