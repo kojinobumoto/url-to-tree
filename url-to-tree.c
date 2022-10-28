@@ -1,6 +1,6 @@
 /*
  * FILENAME :    url-to-tree.c
- *
+ l
  * DESCRIPTION : 
  *         Convert url-list to tree structure.
  *
@@ -56,6 +56,15 @@ removeSubstr (char *string, char *sub) {
     }
 }
 */
+
+int
+countACharInString(char *s, const char c)
+{
+    int i;
+    for(i=0; s[i]; s[i] == c ? i++ : *s++);
+    return i;
+}
+
 
 char *
 removeHeadingSubstr(char *p, const char *sub)
@@ -273,13 +282,17 @@ freeNodes(struct Node *nd)
 }
 
 void
-makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
+makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
 {
   char *line = NULL;
   size_t len = 0;
   ssize_t nread;
   int n_cldrn = 0;
-  char * token[10];
+  //char * token[256]; //-> let's count the required token size dynamically in while loop.
+
+  // sometimes counting the required token size overwrites
+  // the memory area of the argument "flg_tsv_output".
+  const int flg_keep = flg_tsv_output;
   
   struct Node *nd = (struct Node *)calloc(1, sizeof(struct Node));
   if (nd == NULL)
@@ -302,6 +315,9 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
       char *url = NULL;
       char *title = NULL;
       char *dest_title = NULL;
+
+      int token_size = countACharInString(line, '/');
+      char * token[token_size + 1];
       
       nd = root;
 
@@ -453,7 +469,8 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
   sortChildren(root);
   
   //print out
-  printTree(root, 0, 0, flg_tsv_output);
+  //printTree(root, 0, 0, flg_tsv_output);
+  printTree(root, 0, 0, flg_keep);
 
   freeNodes(root);
   free(line);
