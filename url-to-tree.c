@@ -468,7 +468,6 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 
   //print out
   printTree(root, 0, 0, flg_tsv_output);
-  //printTree(root, 0, 0, flg_keep);
 
   freeNodes(root);
   free(line);
