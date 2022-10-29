@@ -57,6 +57,18 @@ removeSubstr (char *string, char *sub) {
 }
 */
 
+void exitIfMemoryExhausted(const void *p, const char *s)
+{
+    if (p == NULL)
+      {
+        printf("Memory Exhausted for \"%s\" allocation.\n", s);
+        exit(EXIT_FAILURE);
+      }
+
+    return;
+}
+
+
 int
 countACharInString(char *s, const char c)
 {
@@ -90,12 +102,16 @@ removeTrailingChar(char *p, const char tc)
 }
 
 void
-tokenize( char **result, char *src, const char *delim)
+tokenize( char **result, char *src, const char *delim, int token_size)
 {
      int i=0;
      char *p=NULL;
      p=src;
-     for(result[i]=NULL, p=removeHeadingSubstr(p, delim); p!=NULL && *p; p=removeHeadingSubstr(p, delim) )
+
+     // limit this for loop at most till token_size time,
+     // otherwise this loop might overwrite unwilling memory area.
+     // (e.g. function variables in stack).
+     for(result[i]=NULL, p=removeHeadingSubstr(p, delim); p!=NULL && *p && i < token_size; p=removeHeadingSubstr(p, delim) )
      {
          result[i++]=p;
          result[i]=NULL;
@@ -282,24 +298,17 @@ freeNodes(struct Node *nd)
 }
 
 void
-makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
+makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 {
   char *line = NULL;
   size_t len = 0;
   ssize_t nread;
   int n_cldrn = 0;
-  //char * token[256]; //-> let's count the required token size dynamically in while loop.
-
-  // sometimes counting the required token size overwrites
-  // the memory area of the argument "flg_tsv_output".
-  const int flg_keep = flg_tsv_output;
+  //char * token[256]; //-> let's count the required token size dinamycally in while loop.
   
   struct Node *nd = (struct Node *)calloc(1, sizeof(struct Node));
-  if (nd == NULL)
-    {
-      printf("Memory Exhausted for \"Node *nd\" allocation.\n");
-      exit(EXIT_FAILURE);
-    }
+  exitIfMemoryExhausted(nd, "Node *nd");
+
   struct Node *root = nd;
 
   // create first child and starts from that child
@@ -323,8 +332,8 @@ makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
 
       removeTrailingChar(line, '\n');
       removeTrailingChar(line, '\r');
-      
-      tokenize(token, line, delimiter);
+
+      tokenize(token, line, delimiter, token_size + 1);
       
       // i'm interested in just url and title.
       url = token[0];
@@ -415,22 +424,14 @@ makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
           if (child == NULL)
             {
               dest = (char *)calloc(pos-prev_pos+1, sizeof(char));
-              if (dest == NULL)
-                {
-                  printf("Memory Exhausted for \"dest\" allocation.\n");
-                  exit(EXIT_FAILURE);
-                }
+              exitIfMemoryExhausted(dest, "dest");
               
               memmove(dest, &url[prev_pos], pos-prev_pos);
               n_cldrn = count_children(nd);
               
               // make sure there's always (n_cldrn+1) children and let the last one is always null
               nd->children = (struct Node **)realloc(nd->children, (n_cldrn+2)*sizeof(struct Node*));
-              if (nd->children == NULL)
-                {
-                  printf("Memory Exhausted for \"nd->children\" allocation.\n");
-                  exit(EXIT_FAILURE);
-                }
+              exitIfMemoryExhausted(nd->children, "nd->children");
 
               child = (struct Node *)calloc(1, sizeof(struct Node));
               child->str = dest;
@@ -453,11 +454,8 @@ makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
           if (strlen(title) > 0 )
             {
               dest_title = (char *) calloc(strlen(title)+1, sizeof(char));
-              if (dest_title == NULL)
-                {
-                  printf("Memory Exhausted for \"dest_title\" allocation.\n");
-                  exit(EXIT_FAILURE);
-                }
+              exitIfMemoryExhausted(dest_title, "dest_title");
+
               memmove(dest_title, title, strlen(title));
               nd->title = dest_title;
             }
@@ -467,10 +465,10 @@ makeTree(FILE *stream, const char *delimiter, const int flg_tsv_output)
     }
 
   sortChildren(root);
-  
+
   //print out
-  //printTree(root, 0, 0, flg_tsv_output);
-  printTree(root, 0, 0, flg_keep);
+  printTree(root, 0, 0, flg_tsv_output);
+  //printTree(root, 0, 0, flg_keep);
 
   freeNodes(root);
   free(line);
