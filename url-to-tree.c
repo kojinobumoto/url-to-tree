@@ -434,6 +434,8 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
               exitIfMemoryExhausted(nd->children, "nd->children");
 
               child = (struct Node *)calloc(1, sizeof(struct Node));
+              exitIfMemoryExhausted(child, "child");
+
               child->str = dest;
               child->children = NULL;
 
