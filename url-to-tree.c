@@ -124,21 +124,6 @@ tokenize( char **result, char *src, const char *delim, int token_size)
 }
 
 
-size_t
-count_children(struct Node *p)
-{
-  if (!p || !p->children)
-      return 0;
-
-  size_t i = 0;
-  while(p->children[i])
-      ++i;
-
-  return i;
-
-}
-
-
 struct Node *
 find_same_child(struct Node *p, const char *val)
 {
