@@ -70,11 +70,14 @@ void exitIfMemoryExhausted(const void *p, const char *s)
 
 
 int
-countACharInString(char *s, const char c)
+countACharInString(const char *s, char c)
 {
-    int i;
-    for(i=0; s[i]; s[i] == c ? i++ : *s++);
-    return i;
+    int count = 0;
+    while (*s) {
+        if (*s == c) count++;
+        s++;
+    }
+    return count;
 }
 
 
