@@ -30,6 +30,7 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,17 +48,6 @@ struct Node {
   size_t n_children;
 };
 
-/*
-void
-removeSubstr (char *string, char *sub) {
-    char *match;
-    int len = strlen(sub);
-    while ((match = strstr(string, sub))) {
-      memset(match, '\0', len);
-    }
-}
-*/
-
 void exitIfMemoryExhausted(const void *p, const char *s)
 {
     if (p == NULL)
@@ -69,7 +59,6 @@ void exitIfMemoryExhausted(const void *p, const char *s)
     return;
 }
 
-
 int
 countACharInString(const char *s, char c)
 {
@@ -80,7 +69,6 @@ countACharInString(const char *s, char c)
     }
     return count;
 }
-
 
 char *
 removeHeadingSubstr(char *p, const char *sub)
@@ -94,7 +82,6 @@ removeHeadingSubstr(char *p, const char *sub)
   return p;
 }
 
-
 void
 removeTrailingChar(char *p, const char tc)
 {
@@ -103,7 +90,6 @@ removeTrailingChar(char *p, const char tc)
     if (len == 0) return;
     if (p[len-1] == tc) p[len-1] = '\0';
 }
-
 
 void
 tokenize( char **result, char *src, const char *delim, int token_size)
@@ -122,7 +108,6 @@ tokenize( char **result, char *src, const char *delim, int token_size)
          p=strstr(p, delim);
      }
 }
-
 
 struct Node *
 find_same_child(struct Node *p, const char *val)
@@ -256,7 +241,6 @@ printTree(struct Node *nd, int depth, int flg_lastchild, int print_type)
   return;
 }
 
-
 void freeNodes(struct Node *root)
 {
     if (!root) return;
@@ -279,14 +263,7 @@ void freeNodes(struct Node *root)
                 stack_cap *= 2;
                 struct Node **new_stack =
                     realloc(stack, stack_cap * sizeof(struct Node *));
-                if (!new_stack) {
-                    /* failed realloc */
-                    free(nd->str);
-                    free(nd->title);
-                    free(nd->children);
-                    free(nd);
-                    continue;
-                }
+                exitIfMemoryExhausted(new_stack, "new_stack");
                 stack = new_stack;
             }
             stack[stack_top++] = nd->children[i];
@@ -302,15 +279,12 @@ void freeNodes(struct Node *root)
     free(stack);
 }
 
-
 void
 makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 {
   char *line = NULL;
   size_t len = 0;
-  size_t nread;
-  int n_cldrn = 0;
-  //char * token[256]; //-> let's count the required token size dinamycally in while loop.
+  ssize_t nread;
   
   struct Node *nd = (struct Node *)calloc(1, sizeof(struct Node));
   exitIfMemoryExhausted(nd, "Node *nd");
@@ -318,14 +292,14 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
   struct Node *root = nd;
 
   // create first child and starts from that child
-  // and make sure there's always (n_cldrn+1) children and let the last one is always null
+  // and make sure there's always (num_of_children+1) children and let the last one is always null
   nd->children = NULL;
 
   while ((nread = getline(&line, &len, stream)) != -1)
     {
         
-      int pos = 0;
-      int url_len = 0;
+      size_t pos = 0;
+      size_t url_len = 0;
       int flg_after_question_char = 0;
       char *url = NULL;
       char *title = NULL;
@@ -336,6 +310,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
       
       nd = root;
 
+      // '\r\n' should have been removed before tokenize.
       removeTrailingChar(line, '\n');
       removeTrailingChar(line, '\r');
 
@@ -347,14 +322,8 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
         {
           int tl;
           title = token[1];
-          
           tl = strlen(title);
-          /*// '\r\n' should have been removed before tokenize.
-          if(title[tl-1] == '\n') {removeTrailingChar(title, '\n'); }
-          tl = strlen(title);
-          if(title[tl-1] == '\r') {removeTrailingChar(title, '\r'); }
-          tl = strlen(title);
-          */
+
           if(tl > 1 && title[tl-1] == '"' && title[tl-2] != '\\')
             {
               removeTrailingChar(title, '"');
@@ -375,8 +344,6 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
           char *dest = NULL;
 
           struct Node *child = NULL;
-
-          n_cldrn = 0;
 
           // move after '/'
           if (url[pos] == '/')
