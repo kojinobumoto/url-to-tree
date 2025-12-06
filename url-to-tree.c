@@ -44,6 +44,7 @@ struct Node {
   char *title;
   //struct Node *parent;
   struct Node **children;
+  size_t n_children;
 };
 
 /*
@@ -93,16 +94,16 @@ removeHeadingSubstr(char *p, const char *sub)
   return p;
 }
 
+
 void
 removeTrailingChar(char *p, const char tc)
 {
-  size_t len=strlen(p);
-  if (p[len-1] == tc)
-    {
-      p[len-1] = '\0';
-    }
-  return;
+    if (!p) return;
+    size_t len = strlen(p);
+    if (len == 0) return;
+    if (p[len-1] == tc) p[len-1] = '\0';
 }
+
 
 void
 tokenize( char **result, char *src, const char *delim, int token_size)
@@ -122,49 +123,37 @@ tokenize( char **result, char *src, const char *delim, int token_size)
      }
 }
 
-int
+
+size_t
 count_children(struct Node *p)
 {
-  if (p->children == NULL)
-    {
+  if (!p || !p->children)
       return 0;
-    }
 
-  int i = 0;
-  while(p->children[i] != NULL)
-    {
-      i++;
-    }
+  size_t i = 0;
+  while(p->children[i])
+      ++i;
 
   return i;
 
 }
 
-struct Node*
-find_same_child(struct Node *p, char *val)
+
+struct Node *
+find_same_child(struct Node *p, const char *val)
 {
-  int n_cldrn = 0;
+    if (!p || !val || !p->children)
+        return NULL;
 
-  // if no children
-  if (p->children == NULL)
-    {
-      return NULL;
+    size_t n = p->n_children;
+
+    for (size_t i = 0; i < n; ++i) {
+        struct Node *child = p->children[i];
+        if (child && strcmp(child->str, val) == 0)
+            return child;
     }
 
-  n_cldrn = count_children(p);
-
-  for (int i = 0; i < n_cldrn; i++)
-    {
-      if(p->children[i] == NULL)
-        {
-          return NULL;
-        }
-      if(strcmp(p->children[i]->str, val) == 0)
-        {
-          return p->children[i];
-        }
-    }
-  return NULL;
+    return NULL;
 }
 
 int
@@ -181,7 +170,7 @@ void
 sortChildren(struct Node *nd)
 {
 
-  int n_cldrn = count_children(nd);
+  int n_cldrn = nd->n_children;
 
   if (n_cldrn > 1)
     {
@@ -214,7 +203,7 @@ enum printTypes{ PLANE, TSV };
 void
 printTree(struct Node *nd, int depth, int flg_lastchild, int print_type)
 {
-  int n_cldrn = count_children(nd);
+  int n_cldrn = nd->n_children;
   int flg_lc = flg_lastchild;
 
   if (nd->str == NULL)
@@ -282,30 +271,59 @@ printTree(struct Node *nd, int depth, int flg_lastchild, int print_type)
   return;
 }
 
-void
-freeNodes(struct Node *nd)
+
+void freeNodes(struct Node *root)
 {
-  int n_cldrn = 0;
-  if (nd != NULL)
+    if (!root) return;
+
+    size_t stack_cap = 1024;
+    size_t stack_top = 0;
+    struct Node **stack = malloc(stack_cap * sizeof(struct Node *));
+    if (!stack) return;
+
+    stack[stack_top++] = root;
+
+    while (stack_top > 0)
     {
-      n_cldrn = count_children(nd);
-      for (int i=0; i < n_cldrn; i++) {
-        freeNodes(nd->children[i]);
-      }
-      if (nd->str != NULL) { free(nd->str); }
-      if (nd->title != NULL) { free(nd->title); }
-      if (nd->children != NULL) { free(nd->children); }
-      free(nd);
-      
+        /* pop */
+        struct Node *nd = stack[--stack_top];
+
+        for (size_t i = 0; i < nd->n_children; ++i) {
+            if (stack_top >= stack_cap) {
+                /* expand stack if necessary */
+                stack_cap *= 2;
+                struct Node **new_stack =
+                    realloc(stack, stack_cap * sizeof(struct Node *));
+                if (!new_stack) {
+                    /* failed realloc */
+                    free(nd->str);
+                    free(nd->title);
+                    free(nd->children);
+                    free(nd);
+                    continue;
+                }
+                stack = new_stack;
+            }
+            stack[stack_top++] = nd->children[i];
+        }
+
+        /* free myself */
+        free(nd->str);
+        free(nd->title);
+        free(nd->children);
+        free(nd);
     }
+
+    free(stack);
 }
+
 
 void
 makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 {
   char *line = NULL;
   size_t len = 0;
-  ssize_t nread;
+  size_t nread;
   int n_cldrn = 0;
   //char * token[256]; //-> let's count the required token size dinamycally in while loop.
   
@@ -403,6 +421,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
           // such as "twitter.com/?link=https://aaa.bbb.com".
           // (but this block might be useless for the latter case because of above while() block).
           if (pos > 0
+              && (size_t)pos + 1 < url_len
               && url[pos-1] == ':'
               && url[pos+1] == '/')
             {
@@ -430,20 +449,23 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
               exitIfMemoryExhausted(dest, "dest");
               
               memmove(dest, &url[prev_pos], pos-prev_pos);
-              n_cldrn = count_children(nd);
-              
-              // make sure there's always (n_cldrn+1) children and let the last one is always null
-              nd->children = (struct Node **)realloc(nd->children, (n_cldrn+2)*sizeof(struct Node*));
+
+              size_t idx = nd->n_children;
+
+              nd->children = realloc(nd->children, (idx + 1) * sizeof(struct Node*));
               exitIfMemoryExhausted(nd->children, "nd->children");
 
-              child = (struct Node *)calloc(1, sizeof(struct Node));
+              // new child node
+              child = calloc(1, sizeof(struct Node));
               exitIfMemoryExhausted(child, "child");
 
               child->str = dest;
               child->children = NULL;
+              child->n_children = 0;
 
-              nd->children[n_cldrn] = child;
-              nd->children[n_cldrn+1] = NULL;
+              nd->children[idx] = child;
+
+              nd->n_children++;
             }          
 
           nd = child;
