@@ -64,8 +64,8 @@ countACharInString(const char *s, char c)
 {
     int count = 0;
     while (*s) {
-        if (*s == c) count++;
-        s++;
+        if (*s == c) ++count;
+        ++s;
     }
     return count;
 }
@@ -95,8 +95,7 @@ void
 tokenize( char **result, char *src, const char *delim, int token_size)
 {
      int i=0;
-     char *p=NULL;
-     p=src;
+     char *p=src;
 
      // limit this for loop at most till token_size time,
      // otherwise this loop might overwrite unwilling memory area.
@@ -147,7 +146,7 @@ sortChildren(struct Node *nd)
       qsort(nd->children, n_cldrn, sizeof(struct Node *), cmpNodeStr);
     }
     
-  for(int i=0; i < n_cldrn; i++)
+  for(int i=0; i < n_cldrn; ++i)
     {
       sortChildren(nd->children[i]);
     }
@@ -229,7 +228,7 @@ printTree(struct Node *nd, int depth, int flg_lastchild, int print_type)
 
   depth++;
 
-  for(int i=0; i < n_cldrn; i++)
+  for(int i=0; i < n_cldrn; ++i)
     {
       flg_lc = 0;
       if(i == n_cldrn - 1)
@@ -248,7 +247,7 @@ void freeNodes(struct Node *root)
     size_t stack_cap = 1024;
     size_t stack_top = 0;
     struct Node **stack = malloc(stack_cap * sizeof(struct Node *));
-    if (!stack) return;
+    exitIfMemoryExhausted(stack, "stack");
 
     stack[stack_top++] = root;
 
@@ -332,8 +331,8 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
         }
       
       // ignore heading '"'
-      if (*url == '"') { url++; }
-      if (title != NULL && *title == '"') { title++; }
+      if (*url == '"') { ++url; }
+      if (title != NULL && *title == '"') { ++title; }
       
       url_len = strlen(url);
       
@@ -349,7 +348,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
           if (url[pos] == '/')
             {
               url[pos] = '\0';
-              pos++;
+              ++pos;
               prev_pos = pos;
             }
           if (isEndOfString(url[pos]))
@@ -365,7 +364,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
                 {
                   flg_after_question_char = 1;
                 }
-              pos++;
+              ++pos;
             }
           // Treat "://" to be one block.
           // Ttypically, move after "http://",
@@ -386,7 +385,7 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
                     {
                       flg_after_question_char = 1;
                     }
-                  pos++;
+                  ++pos;
                 }
             }
 
@@ -409,19 +408,18 @@ makeTree(FILE *stream, const char *delimiter, int flg_tsv_output)
 
               // new child node
               child = calloc(1, sizeof(struct Node));
-              exitIfMemoryExhausted(child, "child");
+              exitIfMemoryExhausted(child, "new child");
 
               child->str = dest;
               child->children = NULL;
               child->n_children = 0;
 
               nd->children[idx] = child;
-
               nd->n_children++;
             }          
 
           nd = child;
-          pos++; // move to next char
+          ++pos; // move to next char
 
         }
         // end of inner while
